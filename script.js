@@ -1,6 +1,18 @@
-const STORAGE_KEY = "x-equillixerra-tasks";
+const SUPABASE_URL =
+    "https://hrajelqvbtqehvwtdfln.supabase.co";
 
-let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+const SUPABASE_KEY =
+    "PASTE_PUBLISHABLE_KEY_DI_SINI";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+let tasks = [];
+
+let currentFilter = "all";
 
 let currentFilter = "all";
 
