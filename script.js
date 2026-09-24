@@ -2,7 +2,7 @@ const SUPABASE_URL =
     "https://hrajelqvbtqehvwtdfln.supabase.co";
 
 const SUPABASE_KEY =
-    "PASTE_PUBLISHABLE_KEY_DI_SINI";
+    "sb_publishable_RxcqgmURzFDGqnYpoPCQbQ_-YPC_1MJ";
 
 const supabaseClient =
     window.supabase.createClient(
