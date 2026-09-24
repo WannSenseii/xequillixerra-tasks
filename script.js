@@ -1,19 +1,9 @@
-const SUPABASE_URL =
-    "https://hrajelqvbtqehvwtdfln.supabase.co";
+const SUPABASE_URL = "https://hrajelqvbtqehvwtdfln.supabase.co";
+const SUPABASE_KEY = "sb_publishable_RxcqgmURzFDGqnYpoPCQbQ_-YPC_1MJ";
 
-const SUPABASE_KEY =
-    "sb_publishable_RxcqgmURzFDGqnYpoPCQbQ_-YPC_1MJ";
-
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-    );
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let tasks = [];
-
-let currentFilter = "all";
-
 let currentFilter = "all";
 
 
@@ -22,13 +12,10 @@ let currentFilter = "all";
 // ===============================
 
 function updateDate() {
-
     const now = new Date();
 
     document.getElementById("currentDay").textContent =
-        now.toLocaleDateString("en-US", {
-            weekday: "long"
-        });
+        now.toLocaleDateString("en-US", { weekday: "long" });
 
     document.getElementById("currentDate").textContent =
         now.toLocaleDateString("en-US", {
@@ -42,16 +29,41 @@ updateDate();
 
 
 // ===============================
-// SAVE
+// SUPABASE: LOAD
 // ===============================
 
-function saveTasks() {
+async function loadTasks() {
 
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(tasks)
-    );
+    const { data, error } = await supabaseClient
+        .from("tasks")
+        .select("*");
 
+    if (error) {
+        console.error("Failed to load tasks:", error.message);
+        return;
+    }
+
+    tasks = data;
+    renderTasks();
+}
+
+
+// ===============================
+// SUPABASE: REALTIME SYNC
+// ===============================
+
+function subscribeToChanges() {
+
+    supabaseClient
+        .channel("tasks-changes")
+        .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "tasks" },
+            () => {
+                loadTasks();
+            }
+        )
+        .subscribe();
 }
 
 
@@ -60,16 +72,10 @@ function saveTasks() {
 // ===============================
 
 function getDeadline(task) {
-
-    return new Date(
-        `${task.date}T${task.time}`
-    );
-
+    return new Date(`${task.date}T${task.time}`);
 }
 
-
 function formatDate(dateString) {
-
     const date = new Date(dateString + "T00:00");
 
     return date.toLocaleDateString("en-US", {
@@ -78,40 +84,19 @@ function formatDate(dateString) {
         month: "short",
         year: "numeric"
     });
-
 }
-
-
-function isCompleted(task) {
-
-    return task.completed === true;
-
-}
-
 
 function isSoon(task) {
-
     const now = new Date();
     const deadline = getDeadline(task);
-
-    const difference =
-        deadline.getTime() - now.getTime();
-
-    const hours =
-        difference / (1000 * 60 * 60);
+    const difference = deadline.getTime() - now.getTime();
+    const hours = difference / (1000 * 60 * 60);
 
     return hours >= 0 && hours <= 48;
-
 }
 
-
 function isOverdue(task) {
-
-    return (
-        !task.completed &&
-        getDeadline(task) < new Date()
-    );
-
+    return !task.completed && getDeadline(task) < new Date();
 }
 
 
@@ -121,70 +106,33 @@ function isOverdue(task) {
 
 function renderTasks() {
 
-    const container =
-        document.getElementById("taskList");
-
-    const empty =
-        document.getElementById("emptyState");
+    const container = document.getElementById("taskList");
+    const empty = document.getElementById("emptyState");
 
     container.innerHTML = "";
 
     let filtered = tasks.filter(task => {
-
-        if (currentFilter === "completed")
-            return task.completed;
-
-        if (currentFilter === "upcoming")
-            return !task.completed &&
-                !isOverdue(task);
-
-        if (currentFilter === "soon")
-            return !task.completed &&
-                isSoon(task);
-
+        if (currentFilter === "completed") return task.completed;
+        if (currentFilter === "upcoming") return !task.completed && !isOverdue(task);
+        if (currentFilter === "soon") return !task.completed && isSoon(task);
         return true;
-
     });
 
+    // soonest deadline first
+    filtered.sort((a, b) => getDeadline(a) - getDeadline(b));
 
-    // newest deadline first
-    filtered.sort(
-        (a, b) =>
-            getDeadline(a) - getDeadline(b)
-    );
-
-
-    if (filtered.length === 0) {
-
-        empty.style.display = "block";
-
-    } else {
-
-        empty.style.display = "none";
-
-    }
-
+    empty.style.display = filtered.length === 0 ? "block" : "none";
 
     filtered.forEach(task => {
 
-        const element =
-            document.createElement("div");
-
-        element.className =
-            "task" +
-            (task.completed ? " completed" : "");
-
+        const element = document.createElement("div");
+        element.className = "task" + (task.completed ? " completed" : "");
 
         let deadlineClass = "";
-
-        if (isOverdue(task))
-            deadlineClass = "overdue";
-        else if (isSoon(task))
-            deadlineClass = "soon";
-
+        if (isOverdue(task)) deadlineClass = "overdue";
+        else if (isSoon(task)) deadlineClass = "soon";
 
         element.innerHTML = `
-
             <button
                 class="check ${task.completed ? "done" : ""}"
                 onclick="toggleTask('${task.id}')"
@@ -192,71 +140,37 @@ function renderTasks() {
                 ${task.completed ? "✓" : ""}
             </button>
 
-
             <div>
-
-                <div class="task-title">
-                    ${escapeHTML(task.title)}
-                </div>
-
-                <span class="subject">
-                    ${escapeHTML(task.subject)}
-                </span>
-
+                <div class="task-title">${escapeHTML(task.title)}</div>
+                <span class="subject">${escapeHTML(task.subject)}</span>
                 ${
                     task.notes
-                    ? `
-                    <div class="notes">
-                        ${escapeHTML(task.notes)}
-                    </div>
-                    `
-                    : ""
+                        ? `<div class="notes">${escapeHTML(task.notes)}</div>`
+                        : ""
                 }
-
             </div>
-
 
             <div class="deadline ${deadlineClass}">
-
-                <div class="deadline-date">
-                    ${formatDate(task.date)}
-                </div>
-
-                <div class="deadline-time">
-                    ${task.time}
-                </div>
-
+                <div class="deadline-date">${formatDate(task.date)}</div>
+                <div class="deadline-time">${task.time}</div>
                 ${
                     isOverdue(task)
-                    ? `<small>OVERDUE</small>`
-                    : isSoon(task)
-                    ? `<small>⚠ Due soon</small>`
-                    : ""
+                        ? `<small>OVERDUE</small>`
+                        : isSoon(task)
+                        ? `<small>⚠ Due soon</small>`
+                        : ""
                 }
-
             </div>
-
 
             <div class="task-actions">
-
-                <button
-                    class="delete-task"
-                    onclick="deleteTask('${task.id}')"
-                >
-                    ×
-                </button>
-
+                <button class="delete-task" onclick="deleteTask('${task.id}')">×</button>
             </div>
-
         `;
 
         container.appendChild(element);
-
     });
 
-
     updateStats();
-
 }
 
 
@@ -266,37 +180,15 @@ function renderTasks() {
 
 function updateStats() {
 
-    const total =
-        tasks.length;
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.completed).length;
+    const upcoming = tasks.filter(t => !t.completed && !isOverdue(t)).length;
+    const soon = tasks.filter(t => !t.completed && isSoon(t)).length;
 
-    const completed =
-        tasks.filter(t => t.completed).length;
-
-    const upcoming =
-        tasks.filter(t =>
-            !t.completed &&
-            !isOverdue(t)
-        ).length;
-
-    const soon =
-        tasks.filter(t =>
-            !t.completed &&
-            isSoon(t)
-        ).length;
-
-
-    document.getElementById("totalTasks")
-        .textContent = total;
-
-    document.getElementById("completedTasks")
-        .textContent = completed;
-
-    document.getElementById("upcomingTasks")
-        .textContent = upcoming;
-
-    document.getElementById("dueSoon")
-        .textContent = soon;
-
+    document.getElementById("totalTasks").textContent = total;
+    document.getElementById("completedTasks").textContent = completed;
+    document.getElementById("upcomingTasks").textContent = upcoming;
+    document.getElementById("dueSoon").textContent = soon;
 }
 
 
@@ -304,21 +196,22 @@ function updateStats() {
 // TOGGLE
 // ===============================
 
-function toggleTask(id) {
+async function toggleTask(id) {
 
-    const task =
-        tasks.find(t => t.id === id);
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
 
-    if (!task)
+    const { error } = await supabaseClient
+        .from("tasks")
+        .update({ completed: !task.completed })
+        .eq("id", id);
+
+    if (error) {
+        console.error("Failed to update task:", error.message);
         return;
+    }
 
-    task.completed =
-        !task.completed;
-
-    saveTasks();
-
-    renderTasks();
-
+    await loadTasks();
 }
 
 
@@ -326,18 +219,21 @@ function toggleTask(id) {
 // DELETE
 // ===============================
 
-function deleteTask(id) {
+async function deleteTask(id) {
 
-    if (!confirm("Delete this assignment?"))
+    if (!confirm("Delete this assignment?")) return;
+
+    const { error } = await supabaseClient
+        .from("tasks")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+        console.error("Failed to delete task:", error.message);
         return;
+    }
 
-    tasks =
-        tasks.filter(t => t.id !== id);
-
-    saveTasks();
-
-    renderTasks();
-
+    await loadTasks();
 }
 
 
@@ -345,30 +241,18 @@ function deleteTask(id) {
 // MODAL
 // ===============================
 
-const modal =
-    document.getElementById("taskModal");
+const modal = document.getElementById("taskModal");
 
-document.getElementById("addTaskBtn")
-    .addEventListener("click", () => {
+document.getElementById("addTaskBtn").addEventListener("click", () => {
+    modal.classList.add("show");
+});
 
-        modal.classList.add("show");
-
-    });
-
-
-document.getElementById("closeModal")
-    .addEventListener("click", () => {
-
-        modal.classList.remove("show");
-
-    });
-
+document.getElementById("closeModal").addEventListener("click", () => {
+    modal.classList.remove("show");
+});
 
 modal.addEventListener("click", e => {
-
-    if (e.target === modal)
-        modal.classList.remove("show");
-
+    if (e.target === modal) modal.classList.remove("show");
 });
 
 
@@ -376,126 +260,81 @@ modal.addEventListener("click", e => {
 // ADD TASK
 // ===============================
 
-document.getElementById("taskForm")
-    .addEventListener("submit", e => {
+document.getElementById("taskForm").addEventListener("submit", async e => {
+    e.preventDefault();
 
-        e.preventDefault();
+    const newTask = {
+        title: document.getElementById("taskTitle").value,
+        subject: document.getElementById("taskSubject").value,
+        date: document.getElementById("taskDate").value,
+        time: document.getElementById("taskTime").value,
+        notes: document.getElementById("taskNotes").value,
+        reminder: document.getElementById("taskReminder").checked,
+        completed: false
+    };
 
+    const { data, error } = await supabaseClient
+        .from("tasks")
+        .insert([newTask])
+        .select();
 
-        const task = {
+    if (error) {
+        console.error("Failed to add task:", error.message);
+        alert("Couldn't save that task — check the console for details.");
+        return;
+    }
 
-            id:
-                Date.now().toString(),
+    document.getElementById("taskForm").reset();
+    modal.classList.remove("show");
 
-            title:
-                document.getElementById("taskTitle").value,
+    if (data && data[0]) {
+        scheduleReminder(data[0]);
+    }
 
-            subject:
-                document.getElementById("taskSubject").value,
-
-            date:
-                document.getElementById("taskDate").value,
-
-            time:
-                document.getElementById("taskTime").value,
-
-            notes:
-                document.getElementById("taskNotes").value,
-
-            reminder:
-                document.getElementById("taskReminder").checked,
-
-            completed:
-                false
-
-        };
-
-
-        tasks.push(task);
-
-        saveTasks();
-
-        renderTasks();
-
-
-        document.getElementById("taskForm")
-            .reset();
-
-
-        modal.classList.remove("show");
-
-
-        scheduleReminder(task);
-
-    });
+    await loadTasks();
+});
 
 
 // ===============================
 // FILTERS
 // ===============================
 
-document.querySelectorAll(".filter")
-    .forEach(button => {
+document.querySelectorAll(".filter").forEach(button => {
+    button.addEventListener("click", () => {
 
-        button.addEventListener("click", () => {
+        document.querySelectorAll(".filter").forEach(btn =>
+            btn.classList.remove("active")
+        );
 
-            document.querySelectorAll(".filter")
-                .forEach(btn =>
-                    btn.classList.remove("active")
-                );
-
-            button.classList.add("active");
-
-            currentFilter =
-                button.dataset.filter;
-
-            renderTasks();
-
-        });
-
+        button.classList.add("active");
+        currentFilter = button.dataset.filter;
+        renderTasks();
     });
+});
 
 
 // ===============================
 // NOTIFICATIONS
 // ===============================
 
-document.getElementById("notificationBtn")
-    .addEventListener("click", async () => {
+document.getElementById("notificationBtn").addEventListener("click", async () => {
 
-        if (!("Notification" in window)) {
+    if (!("Notification" in window)) {
+        alert("Your browser does not support notifications.");
+        return;
+    }
 
-            alert(
-                "Your browser does not support notifications."
-            );
+    const permission = await Notification.requestPermission();
 
-            return;
+    if (permission === "granted") {
+        document.getElementById("notificationBtn").textContent =
+            "✓ Notifications Enabled";
 
-        }
-
-
-        const permission =
-            await Notification.requestPermission();
-
-
-        if (permission === "granted") {
-
-            document.getElementById(
-                "notificationBtn"
-            ).textContent =
-                "✓ Notifications Enabled";
-
-            new Notification(
-                "X-Equillixerra",
-                {
-                    body:
-                        "Assignment reminders are now enabled."
-                }
-            );
-
-        }
-
-    });
+        new Notification("X-Equillixerra", {
+            body: "Assignment reminders are now enabled."
+        });
+    }
+});
 
 
 // ===============================
@@ -504,65 +343,29 @@ document.getElementById("notificationBtn")
 
 function scheduleReminder(task) {
 
-    if (!task.reminder)
-        return;
+    if (!task.reminder) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
 
-    if (!("Notification" in window))
-        return;
-
-
-    if (Notification.permission !== "granted")
-        return;
-
-
-    const deadline =
-        getDeadline(task);
-
+    const deadline = getDeadline(task);
 
     // reminder = 24 hours before
-    const reminderTime =
-        deadline.getTime()
-        -
-        (24 * 60 * 60 * 1000);
+    const reminderTime = deadline.getTime() - 24 * 60 * 60 * 1000;
+    const delay = reminderTime - Date.now();
 
-
-    const delay =
-        reminderTime -
-        Date.now();
-
-
-    if (delay <= 0)
-        return;
-
+    if (delay <= 0) return;
 
     setTimeout(() => {
-
-        new Notification(
-            `📚 Assignment Reminder`,
-            {
-                body:
-                    `${task.title} is due tomorrow at ${task.time}.`
-            }
-        );
-
+        new Notification("📚 Assignment Reminder", {
+            body: `${task.title} is due tomorrow at ${task.time}.`
+        });
     }, delay);
-
 }
 
-
-// ===============================
-// RESTORE REMINDERS
-// ===============================
-
 function restoreReminders() {
-
     tasks.forEach(task => {
-
-        if (!task.completed)
-            scheduleReminder(task);
-
+        if (!task.completed) scheduleReminder(task);
     });
-
 }
 
 
@@ -571,14 +374,9 @@ function restoreReminders() {
 // ===============================
 
 function escapeHTML(text) {
-
-    const div =
-        document.createElement("div");
-
+    const div = document.createElement("div");
     div.textContent = text;
-
     return div.innerHTML;
-
 }
 
 
@@ -586,6 +384,5 @@ function escapeHTML(text) {
 // START
 // ===============================
 
-renderTasks();
-
-restoreReminders();
+loadTasks().then(restoreReminders);
+subscribeToChanges();
