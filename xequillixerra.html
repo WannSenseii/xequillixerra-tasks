@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>X-Equillixerra | Class Tasks</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="paper">
+
+        <header>
+            <div>
+                <p class="small-title">CLASS TASK MANAGER</p>
+                <h1>X-Equillixerra</h1>
+                <p class="subtitle">Your assignments. Your deadlines. One place.</p>
+            </div>
+
+            <div class="header-date">
+                <span id="currentDay"></span>
+                <strong id="currentDate"></strong>
+            </div>
+        </header>
+
+        <main>
+
+            <section class="stats">
+
+                <div class="stat-card">
+                    <span>📚</span>
+                    <div>
+                        <p>Total Tasks</p>
+                        <strong id="totalTasks">0</strong>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <span>⏰</span>
+                    <div>
+                        <p>Upcoming</p>
+                        <strong id="upcomingTasks">0</strong>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <span>⚠️</span>
+                    <div>
+                        <p>Due Soon</p>
+                        <strong id="dueSoon">0</strong>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <span>✓</span>
+                    <div>
+                        <p>Completed</p>
+                        <strong id="completedTasks">0</strong>
+                    </div>
+                </div>
+
+            </section>
+
+            <section class="toolbar">
+
+                <div class="filters">
+                    <button class="filter active" data-filter="all">All</button>
+                    <button class="filter" data-filter="upcoming">Upcoming</button>
+                    <button class="filter" data-filter="soon">Due Soon</button>
+                    <button class="filter" data-filter="completed">Completed</button>
+                </div>
+
+                <div class="actions">
+                    <button id="notificationBtn" class="notification-btn">
+                        🔔 Enable Notifications
+                    </button>
+
+                    <button id="addTaskBtn" class="add-btn">
+                        + Add Task
+                    </button>
+                </div>
+
+            </section>
+
+            <section class="task-section">
+
+                <div class="section-heading">
+                    <div>
+                        <h2>Assignment List</h2>
+                        <p>Keep track of everything you need to finish.</p>
+                    </div>
+                </div>
+
+                <div id="taskList"></div>
+
+                <div id="emptyState" class="empty-state">
+                    <div>📖</div>
+                    <h3>No assignments here</h3>
+                    <p>Add your first assignment to get started.</p>
+                </div>
+
+            </section>
+
+        </main>
+
+        <footer>
+            <p>X-Equillixerra • Class Assignment Manager</p>
+        </footer>
+
+    </div>
+
+
+    <!-- ADD TASK MODAL -->
+
+    <div id="taskModal" class="modal">
+
+        <div class="modal-content">
+
+            <button class="close-btn" id="closeModal">×</button>
+
+            <h2>Add Assignment</h2>
+            <p class="modal-subtitle">
+                Write down what you need to finish.
+            </p>
+
+            <form id="taskForm">
+
+                <label>
+                    Assignment Name
+                    <input
+                        type="text"
+                        id="taskTitle"
+                        placeholder="e.g. Physics Chapter 3"
+                        required
+                    >
+                </label>
+
+                <label>
+                    Subject
+                    <input
+                        type="text"
+                        id="taskSubject"
+                        placeholder="e.g. Physics"
+                        required
+                    >
+                </label>
+
+                <div class="form-row">
+
+                    <label>
+                        Due Date
+                        <input
+                            type="date"
+                            id="taskDate"
+                            required
+                        >
+                    </label>
+
+                    <label>
+                        Due Time
+                        <input
+                            type="time"
+                            id="taskTime"
+                            value="23:59"
+                            required
+                        >
+                    </label>
+
+                </div>
+
+                <label>
+                    Notes
+                    <textarea
+                        id="taskNotes"
+                        placeholder="Additional notes..."
+                    ></textarea>
+                </label>
+
+                <label class="reminder-option">
+
+                    <input
+                        type="checkbox"
+                        id="taskReminder"
+                        checked
+                    >
+
+                    <span>
+                        🔔 Remind me before the deadline
+                    </span>
+
+                </label>
+
+                <button type="submit" class="submit-btn">
+                    Add Assignment
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+
+</body>
+</html>
